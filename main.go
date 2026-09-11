@@ -3,63 +3,14 @@ package main
 import (
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"api-gin/models"
 )
 
-type RecursoSala string
-
-const (
-	RecursoProjetor       RecursoSala = "projetor"
-	RecursoComputadores   RecursoSala = "computadores"
-	RecursoSistemaAudio   RecursoSala = "sistema_audio"
-	RecursoArCondicionado RecursoSala = "ar_condicionado"
-)
-
-type Sala struct {
-	ID         string        `json:"id" binding:"required"`
-	Nome       string        `json:"nome" binding:"required"`
-	Capacidade int           `json:"capacidade" binding:"required,gt=0"`
-	Recursos   []RecursoSala `json:"recursos" binding:"omitempty,dive,oneof=projetor computadores sistema_audio ar_condicionado"`
-}
-
-type SalaRepository struct {
-	mu    sync.RWMutex
-	salas []Sala
-}
-
-func novoSalaRepository() *SalaRepository {
-	return &SalaRepository{salas: make([]Sala, 0)}
-}
-
-func (r *SalaRepository) criar(novaSala Sala) bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	for _, sala := range r.salas {
-		if sala.ID == novaSala.ID {
-			return false
-		}
-	}
-
-	if novaSala.Recursos == nil {
-		novaSala.Recursos = []RecursoSala{}
-	}
-
-	r.salas = append(r.salas, novaSala)
-	return true
-}
-
-func (r *SalaRepository) listar() []Sala {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	salas := make([]Sala, len(r.salas))
-	copy(salas, r.salas)
-	return salas
-}
+const versaoAPI = "1.1.0"
 
 func configurarRotas() *gin.Engine {
 	r := gin.New()
@@ -73,12 +24,12 @@ func configurarRotas() *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{
 				"status":    "healthy",
 				"timestamp": time.Now(),
-				"version":   "1.0.0",
+				"version":   versaoAPI,
 			})
 		})
 
 		v1.POST("/salas", func(c *gin.Context) {
-			var novaSala Sala
+			var novaSala models.Sala
 			if err := c.ShouldBindJSON(&novaSala); err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"erro": "dados inválidos: informe id, nome, capacidade maior que zero e recursos permitidos",
@@ -103,7 +54,7 @@ func configurarRotas() *gin.Engine {
 			}
 
 			if novaSala.Recursos == nil {
-				novaSala.Recursos = []RecursoSala{}
+				novaSala.Recursos = []models.RecursoSala{}
 			}
 
 			c.JSON(http.StatusCreated, novaSala)
