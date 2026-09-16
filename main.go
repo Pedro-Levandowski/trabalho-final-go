@@ -10,13 +10,14 @@ import (
 	"api-gin/models"
 )
 
-const versaoAPI = "1.1.0"
+const versaoAPI = "1.2.0"
 
 func configurarRotas() *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
-	repository := novoSalaRepository()
+	salaRepository := novoSalaRepository()
+	alunoRepository := novoAlunoRepository()
 
 	v1 := r.Group("/api/v1")
 	{
@@ -46,7 +47,7 @@ func configurarRotas() *gin.Engine {
 				return
 			}
 
-			if cadastrada := repository.criar(novaSala); !cadastrada {
+			if cadastrada := salaRepository.criar(novaSala); !cadastrada {
 				c.JSON(http.StatusConflict, gin.H{
 					"erro": "já existe uma sala com o identificador informado",
 				})
@@ -61,7 +62,52 @@ func configurarRotas() *gin.Engine {
 		})
 
 		v1.GET("/salas", func(c *gin.Context) {
-			c.JSON(http.StatusOK, repository.listar())
+			c.JSON(http.StatusOK, salaRepository.listar())
+		})
+
+		v1.POST("/alunos", func(c *gin.Context) {
+			var novoAluno models.Aluno
+			if err := c.ShouldBindJSON(&novoAluno); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "dados inválidos: informe id, nome completo e e-mail válido",
+				})
+				return
+			}
+
+			novoAluno.ID = strings.TrimSpace(novoAluno.ID)
+			novoAluno.Nome = strings.TrimSpace(novoAluno.Nome)
+			novoAluno.Email = strings.ToLower(strings.TrimSpace(novoAluno.Email))
+			if novoAluno.ID == "" || novoAluno.Nome == "" || novoAluno.Email == "" {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "id, nome completo e e-mail não podem conter apenas espaços",
+				})
+				return
+			}
+
+			if cadastrado := alunoRepository.criar(novoAluno); !cadastrado {
+				c.JSON(http.StatusConflict, gin.H{
+					"erro": "já existe um aluno com o identificador informado",
+				})
+				return
+			}
+
+			c.JSON(http.StatusCreated, novoAluno)
+		})
+
+		v1.GET("/alunos", func(c *gin.Context) {
+			c.JSON(http.StatusOK, alunoRepository.listar())
+		})
+
+		v1.GET("/alunos/:id", func(c *gin.Context) {
+			aluno, encontrado := alunoRepository.buscarPorID(c.Param("id"))
+			if !encontrado {
+				c.JSON(http.StatusNotFound, gin.H{
+					"erro": "aluno não encontrado",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, aluno)
 		})
 	}
 
