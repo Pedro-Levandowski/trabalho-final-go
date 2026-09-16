@@ -10,7 +10,14 @@ import (
 	"api-gin/models"
 )
 
-const versaoAPI = "1.2.0"
+const versaoAPI = "1.3.0"
+
+type criarTurmaRequest struct {
+	ID         string `json:"id" binding:"required"`
+	Nome       string `json:"nome" binding:"required"`
+	Disciplina string `json:"disciplina" binding:"required"`
+	Professor  string `json:"professor" binding:"required"`
+}
 
 func configurarRotas() *gin.Engine {
 	r := gin.New()
@@ -18,6 +25,7 @@ func configurarRotas() *gin.Engine {
 
 	salaRepository := novoSalaRepository()
 	alunoRepository := novoAlunoRepository()
+	turmaRepository := novoTurmaRepository()
 
 	v1 := r.Group("/api/v1")
 	{
@@ -108,6 +116,47 @@ func configurarRotas() *gin.Engine {
 			}
 
 			c.JSON(http.StatusOK, aluno)
+		})
+
+		v1.POST("/turmas", func(c *gin.Context) {
+			var request criarTurmaRequest
+			if err := c.ShouldBindJSON(&request); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "dados inválidos: informe id, nome, disciplina e professor",
+				})
+				return
+			}
+
+			request.ID = strings.TrimSpace(request.ID)
+			request.Nome = strings.TrimSpace(request.Nome)
+			request.Disciplina = strings.TrimSpace(request.Disciplina)
+			request.Professor = strings.TrimSpace(request.Professor)
+			if request.ID == "" || request.Nome == "" || request.Disciplina == "" || request.Professor == "" {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "id, nome, disciplina e professor não podem conter apenas espaços",
+				})
+				return
+			}
+
+			novaTurma := models.Turma{
+				ID:         request.ID,
+				Nome:       request.Nome,
+				Disciplina: request.Disciplina,
+				Professor:  request.Professor,
+			}
+
+			if cadastrada := turmaRepository.criar(novaTurma); !cadastrada {
+				c.JSON(http.StatusConflict, gin.H{
+					"erro": "já existe uma turma com o identificador informado",
+				})
+				return
+			}
+
+			c.JSON(http.StatusCreated, novaTurma)
+		})
+
+		v1.GET("/turmas", func(c *gin.Context) {
+			c.JSON(http.StatusOK, turmaRepository.listar())
 		})
 	}
 
