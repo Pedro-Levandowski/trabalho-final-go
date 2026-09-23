@@ -56,6 +56,19 @@ func (r *AlocacaoRepository) listarPorSala(salaID string) []models.Alocacao {
 	return alocacoes
 }
 
+func (r *AlocacaoRepository) buscarPorTurma(turmaID string) (models.Alocacao, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, alocacao := range r.alocacoes {
+		if alocacao.TurmaID == turmaID {
+			return alocacao, true
+		}
+	}
+
+	return models.Alocacao{}, false
+}
+
 func (r *AlocacaoRepository) buscarConflitos(salaID string, diaSemana models.DiaSemana, inicioMinutos, fimMinutos int) []models.Alocacao {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
