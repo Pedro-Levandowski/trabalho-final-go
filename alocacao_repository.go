@@ -42,6 +42,36 @@ func (r *AlocacaoRepository) criar(novaAlocacao models.Alocacao) error {
 	return nil
 }
 
+func (r *AlocacaoRepository) listarPorSala(salaID string) []models.Alocacao {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	alocacoes := make([]models.Alocacao, 0)
+	for _, alocacao := range r.alocacoes {
+		if alocacao.SalaID == salaID {
+			alocacoes = append(alocacoes, alocacao)
+		}
+	}
+
+	return alocacoes
+}
+
+func (r *AlocacaoRepository) buscarConflitos(salaID string, diaSemana models.DiaSemana, inicioMinutos, fimMinutos int) []models.Alocacao {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	conflitos := make([]models.Alocacao, 0)
+	for _, alocacao := range r.alocacoes {
+		mesmaSalaEDia := alocacao.SalaID == salaID && alocacao.DiaSemana == diaSemana
+		horariosSobrepostos := inicioMinutos < alocacao.FimMinutos && fimMinutos > alocacao.InicioMinutos
+		if mesmaSalaEDia && horariosSobrepostos {
+			conflitos = append(conflitos, alocacao)
+		}
+	}
+
+	return conflitos
+}
+
 func horarioEmMinutos(horario string) (int, error) {
 	valor, err := time.Parse("15:04", horario)
 	if err != nil {
