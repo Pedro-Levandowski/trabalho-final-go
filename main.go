@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -10,13 +11,17 @@ import (
 	"api-gin/models"
 )
 
-const versaoAPI = "1.3.0"
+const versaoAPI = "1.4.0"
 
 type criarTurmaRequest struct {
 	ID         string `json:"id" binding:"required"`
 	Nome       string `json:"nome" binding:"required"`
 	Disciplina string `json:"disciplina" binding:"required"`
 	Professor  string `json:"professor" binding:"required"`
+}
+
+type matricularAlunoRequest struct {
+	AlunoID string `json:"aluno_id" binding:"required"`
 }
 
 func configurarRotas() *gin.Engine {
@@ -157,6 +162,63 @@ func configurarRotas() *gin.Engine {
 
 		v1.GET("/turmas", func(c *gin.Context) {
 			c.JSON(http.StatusOK, turmaRepository.listar())
+		})
+
+		v1.POST("/turmas/:id/alunos", func(c *gin.Context) {
+			var request matricularAlunoRequest
+			if err := c.ShouldBindJSON(&request); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "informe o identificador do aluno",
+				})
+				return
+			}
+
+			request.AlunoID = strings.TrimSpace(request.AlunoID)
+			if request.AlunoID == "" {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "o identificador do aluno não pode conter apenas espaços",
+				})
+				return
+			}
+
+			aluno, encontrado := alunoRepository.buscarPorID(request.AlunoID)
+			if !encontrado {
+				c.JSON(http.StatusNotFound, gin.H{
+					"erro": "aluno não encontrado",
+				})
+				return
+			}
+
+			if err := turmaRepository.matricularAluno(c.Param("id"), request.AlunoID); err != nil {
+				switch {
+				case errors.Is(err, ErrTurmaNaoEncontrada):
+					c.JSON(http.StatusNotFound, gin.H{"erro": err.Error()})
+				case errors.Is(err, ErrAlunoJaMatriculado):
+					c.JSON(http.StatusConflict, gin.H{"erro": err.Error()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"erro": "não foi possível matricular o aluno"})
+				}
+				return
+			}
+
+			c.JSON(http.StatusCreated, aluno)
+		})
+
+		v1.GET("/turmas/:id/alunos", func(c *gin.Context) {
+			alunosIDs, err := turmaRepository.listarAlunosIDs(c.Param("id"))
+			if errors.Is(err, ErrTurmaNaoEncontrada) {
+				c.JSON(http.StatusNotFound, gin.H{"erro": err.Error()})
+				return
+			}
+
+			alunos := make([]models.Aluno, 0, len(alunosIDs))
+			for _, alunoID := range alunosIDs {
+				if aluno, encontrado := alunoRepository.buscarPorID(alunoID); encontrado {
+					alunos = append(alunos, aluno)
+				}
+			}
+
+			c.JSON(http.StatusOK, alunos)
 		})
 	}
 

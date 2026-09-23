@@ -1,9 +1,15 @@
 package main
 
 import (
+	"errors"
 	"sync"
 
 	"api-gin/models"
+)
+
+var (
+	ErrTurmaNaoEncontrada = errors.New("turma não encontrada")
+	ErrAlunoJaMatriculado = errors.New("aluno já matriculado na turma")
 )
 
 type TurmaRepository struct {
@@ -25,6 +31,7 @@ func (r *TurmaRepository) criar(novaTurma models.Turma) bool {
 		}
 	}
 
+	novaTurma.AlunosIDs = make([]string, 0)
 	r.turmas = append(r.turmas, novaTurma)
 	return true
 }
@@ -36,4 +43,42 @@ func (r *TurmaRepository) listar() []models.Turma {
 	turmas := make([]models.Turma, len(r.turmas))
 	copy(turmas, r.turmas)
 	return turmas
+}
+
+func (r *TurmaRepository) matricularAluno(turmaID, alunoID string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for indice := range r.turmas {
+		if r.turmas[indice].ID != turmaID {
+			continue
+		}
+
+		for _, matriculadoID := range r.turmas[indice].AlunosIDs {
+			if matriculadoID == alunoID {
+				return ErrAlunoJaMatriculado
+			}
+		}
+
+		r.turmas[indice].AlunosIDs = append(r.turmas[indice].AlunosIDs, alunoID)
+		r.turmas[indice].QuantidadeAlunos = len(r.turmas[indice].AlunosIDs)
+		return nil
+	}
+
+	return ErrTurmaNaoEncontrada
+}
+
+func (r *TurmaRepository) listarAlunosIDs(turmaID string) ([]string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, turma := range r.turmas {
+		if turma.ID == turmaID {
+			alunosIDs := make([]string, len(turma.AlunosIDs))
+			copy(alunosIDs, turma.AlunosIDs)
+			return alunosIDs, nil
+		}
+	}
+
+	return nil, ErrTurmaNaoEncontrada
 }
