@@ -12,6 +12,15 @@ const (
 	Domingo DiaSemana = "domingo"
 )
 
+func (d DiaSemana) Valido() bool {
+	switch d {
+	case Segunda, Terca, Quarta, Quinta, Sexta, Sabado, Domingo:
+		return true
+	default:
+		return false
+	}
+}
+
 type Alocacao struct {
 	TurmaID       string    `json:"turma_id"`
 	SalaID        string    `json:"sala_id"`

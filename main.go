@@ -11,7 +11,7 @@ import (
 	"api-gin/models"
 )
 
-const versaoAPI = "1.5.0"
+const versaoAPI = "1.6.0"
 
 type criarTurmaRequest struct {
 	ID         string `json:"id" binding:"required"`
@@ -85,6 +85,55 @@ func configurarRotas() *gin.Engine {
 
 		v1.GET("/salas", func(c *gin.Context) {
 			c.JSON(http.StatusOK, salaRepository.listar())
+		})
+
+		v1.GET("/salas/:id/alocacoes", func(c *gin.Context) {
+			sala, encontrada := salaRepository.buscarPorID(c.Param("id"))
+			if !encontrada {
+				c.JSON(http.StatusNotFound, gin.H{"erro": "sala não encontrada"})
+				return
+			}
+
+			diaValor, temDia := c.GetQuery("dia_semana")
+			inicioValor, temInicio := c.GetQuery("horario_inicio")
+			fimValor, temFim := c.GetQuery("horario_fim")
+
+			if !temDia && !temInicio && !temFim {
+				c.JSON(http.StatusOK, gin.H{
+					"sala_id":   sala.ID,
+					"alocacoes": alocacaoRepository.listarPorSala(sala.ID),
+				})
+				return
+			}
+
+			if !temDia || !temInicio || !temFim {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "para consultar a disponibilidade, informe dia_semana, horario_inicio e horario_fim",
+				})
+				return
+			}
+
+			diaSemana := models.DiaSemana(strings.TrimSpace(diaValor))
+			inicioValor = strings.TrimSpace(inicioValor)
+			fimValor = strings.TrimSpace(fimValor)
+			inicioMinutos, errInicio := horarioEmMinutos(inicioValor)
+			fimMinutos, errFim := horarioEmMinutos(fimValor)
+			if !diaSemana.Valido() || errInicio != nil || errFim != nil || fimMinutos <= inicioMinutos {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "dia da semana ou horários inválidos",
+				})
+				return
+			}
+
+			conflitos := alocacaoRepository.buscarConflitos(sala.ID, diaSemana, inicioMinutos, fimMinutos)
+			c.JSON(http.StatusOK, gin.H{
+				"sala_id":        sala.ID,
+				"dia_semana":     diaSemana,
+				"horario_inicio": inicioValor,
+				"horario_fim":    fimValor,
+				"disponivel":     len(conflitos) == 0,
+				"conflitos":      conflitos,
+			})
 		})
 
 		v1.POST("/alunos", func(c *gin.Context) {
