@@ -45,6 +45,33 @@ func (r *TurmaRepository) listar() []models.Turma {
 	return turmas
 }
 
+func (r *TurmaRepository) buscarPorID(id string) (models.Turma, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, turma := range r.turmas {
+		if turma.ID == id {
+			return turma, true
+		}
+	}
+
+	return models.Turma{}, false
+}
+
+func (r *TurmaRepository) marcarComoAlocada(id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for indice := range r.turmas {
+		if r.turmas[indice].ID == id {
+			r.turmas[indice].Alocada = true
+			return nil
+		}
+	}
+
+	return ErrTurmaNaoEncontrada
+}
+
 func (r *TurmaRepository) matricularAluno(turmaID, alunoID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

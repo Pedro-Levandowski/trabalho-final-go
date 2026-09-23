@@ -11,7 +11,7 @@ import (
 	"api-gin/models"
 )
 
-const versaoAPI = "1.4.0"
+const versaoAPI = "1.5.0"
 
 type criarTurmaRequest struct {
 	ID         string `json:"id" binding:"required"`
@@ -24,6 +24,13 @@ type matricularAlunoRequest struct {
 	AlunoID string `json:"aluno_id" binding:"required"`
 }
 
+type alocarSalaRequest struct {
+	SalaID        string           `json:"sala_id" binding:"required"`
+	DiaSemana     models.DiaSemana `json:"dia_semana" binding:"required,oneof=segunda terca quarta quinta sexta sabado domingo"`
+	HorarioInicio string           `json:"horario_inicio" binding:"required"`
+	HorarioFim    string           `json:"horario_fim" binding:"required"`
+}
+
 func configurarRotas() *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -31,6 +38,7 @@ func configurarRotas() *gin.Engine {
 	salaRepository := novoSalaRepository()
 	alunoRepository := novoAlunoRepository()
 	turmaRepository := novoTurmaRepository()
+	alocacaoRepository := novoAlocacaoRepository()
 
 	v1 := r.Group("/api/v1")
 	{
@@ -59,6 +67,7 @@ func configurarRotas() *gin.Engine {
 				})
 				return
 			}
+			novaSala.Ativa = true
 
 			if cadastrada := salaRepository.criar(novaSala); !cadastrada {
 				c.JSON(http.StatusConflict, gin.H{
@@ -148,6 +157,7 @@ func configurarRotas() *gin.Engine {
 				Nome:       request.Nome,
 				Disciplina: request.Disciplina,
 				Professor:  request.Professor,
+				Ativa:      true,
 			}
 
 			if cadastrada := turmaRepository.criar(novaTurma); !cadastrada {
@@ -162,6 +172,80 @@ func configurarRotas() *gin.Engine {
 
 		v1.GET("/turmas", func(c *gin.Context) {
 			c.JSON(http.StatusOK, turmaRepository.listar())
+		})
+
+		v1.POST("/turmas/:id/alocar", func(c *gin.Context) {
+			var request alocarSalaRequest
+			if err := c.ShouldBindJSON(&request); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "informe sala_id, dia_semana e horários no formato HH:MM",
+				})
+				return
+			}
+
+			request.SalaID = strings.TrimSpace(request.SalaID)
+			request.HorarioInicio = strings.TrimSpace(request.HorarioInicio)
+			request.HorarioFim = strings.TrimSpace(request.HorarioFim)
+
+			inicioMinutos, errInicio := horarioEmMinutos(request.HorarioInicio)
+			fimMinutos, errFim := horarioEmMinutos(request.HorarioFim)
+			if request.SalaID == "" || errInicio != nil || errFim != nil || fimMinutos <= inicioMinutos {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"erro": "sala_id deve ser informado e o horário final deve ser posterior ao inicial no formato HH:MM",
+				})
+				return
+			}
+
+			turma, encontrada := turmaRepository.buscarPorID(c.Param("id"))
+			if !encontrada {
+				c.JSON(http.StatusNotFound, gin.H{"erro": "turma não encontrada"})
+				return
+			}
+
+			sala, encontrada := salaRepository.buscarPorID(request.SalaID)
+			if !encontrada {
+				c.JSON(http.StatusNotFound, gin.H{"erro": "sala não encontrada"})
+				return
+			}
+
+			if !turma.Ativa || !sala.Ativa {
+				c.JSON(http.StatusConflict, gin.H{"erro": "a turma e a sala devem estar ativas"})
+				return
+			}
+
+			if turma.QuantidadeAlunos > sala.Capacidade {
+				c.JSON(http.StatusUnprocessableEntity, gin.H{
+					"erro": "a capacidade da sala é menor que a quantidade de alunos da turma",
+				})
+				return
+			}
+
+			alocacao := models.Alocacao{
+				TurmaID:       turma.ID,
+				SalaID:        sala.ID,
+				DiaSemana:     request.DiaSemana,
+				HorarioInicio: request.HorarioInicio,
+				HorarioFim:    request.HorarioFim,
+				InicioMinutos: inicioMinutos,
+				FimMinutos:    fimMinutos,
+			}
+
+			if err := alocacaoRepository.criar(alocacao); err != nil {
+				switch {
+				case errors.Is(err, ErrTurmaJaAlocada), errors.Is(err, ErrConflitoHorarioSala):
+					c.JSON(http.StatusConflict, gin.H{"erro": err.Error()})
+				default:
+					c.JSON(http.StatusInternalServerError, gin.H{"erro": "não foi possível alocar a sala"})
+				}
+				return
+			}
+
+			if err := turmaRepository.marcarComoAlocada(turma.ID); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"erro": "não foi possível atualizar a turma"})
+				return
+			}
+
+			c.JSON(http.StatusCreated, alocacao)
 		})
 
 		v1.POST("/turmas/:id/alunos", func(c *gin.Context) {

@@ -7,5 +7,6 @@ type Turma struct {
 	Professor        string   `json:"professor"`
 	QuantidadeAlunos int      `json:"quantidade_alunos"`
 	Alocada          bool     `json:"alocada"`
+	Ativa            bool     `json:"ativa"`
 	AlunosIDs        []string `json:"-"`
 }

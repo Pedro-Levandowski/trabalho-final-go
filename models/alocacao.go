@@ -1,0 +1,23 @@
+package models
+
+type DiaSemana string
+
+const (
+	Segunda DiaSemana = "segunda"
+	Terca   DiaSemana = "terca"
+	Quarta  DiaSemana = "quarta"
+	Quinta  DiaSemana = "quinta"
+	Sexta   DiaSemana = "sexta"
+	Sabado  DiaSemana = "sabado"
+	Domingo DiaSemana = "domingo"
+)
+
+type Alocacao struct {
+	TurmaID       string    `json:"turma_id"`
+	SalaID        string    `json:"sala_id"`
+	DiaSemana     DiaSemana `json:"dia_semana"`
+	HorarioInicio string    `json:"horario_inicio"`
+	HorarioFim    string    `json:"horario_fim"`
+	InicioMinutos int       `json:"-"`
+	FimMinutos    int       `json:"-"`
+}
