@@ -41,3 +41,16 @@ func (r *SalaRepository) listar() []models.Sala {
 	copy(salas, r.salas)
 	return salas
 }
+
+func (r *SalaRepository) buscarPorID(id string) (models.Sala, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, sala := range r.salas {
+		if sala.ID == id {
+			return sala, true
+		}
+	}
+
+	return models.Sala{}, false
+}
