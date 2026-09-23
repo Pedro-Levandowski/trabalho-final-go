@@ -11,7 +11,7 @@ import (
 	"api-gin/models"
 )
 
-const versaoAPI = "1.6.0"
+const versaoAPI = "1.7.0"
 
 type criarTurmaRequest struct {
 	ID         string `json:"id" binding:"required"`
@@ -320,6 +320,34 @@ func configurarRotas() *gin.Engine {
 					"erro": "aluno não encontrado",
 				})
 				return
+			}
+
+			turma, encontrada := turmaRepository.buscarPorID(c.Param("id"))
+			if !encontrada {
+				c.JSON(http.StatusNotFound, gin.H{"erro": "turma não encontrada"})
+				return
+			}
+
+			for _, alunoID := range turma.AlunosIDs {
+				if alunoID == request.AlunoID {
+					c.JSON(http.StatusConflict, gin.H{"erro": ErrAlunoJaMatriculado.Error()})
+					return
+				}
+			}
+
+			if alocacao, alocada := alocacaoRepository.buscarPorTurma(turma.ID); alocada {
+				sala, encontrada := salaRepository.buscarPorID(alocacao.SalaID)
+				if !encontrada {
+					c.JSON(http.StatusInternalServerError, gin.H{"erro": "sala da alocação não encontrada"})
+					return
+				}
+
+				if turma.QuantidadeAlunos >= sala.Capacidade {
+					c.JSON(http.StatusUnprocessableEntity, gin.H{
+						"erro": "a matrícula excederia a capacidade da sala alocada",
+					})
+					return
+				}
 			}
 
 			if err := turmaRepository.matricularAluno(c.Param("id"), request.AlunoID); err != nil {
