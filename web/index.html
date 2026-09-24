@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Testes - SGA</title>
+    <link rel="stylesheet" href="/interface/styles.css">
+</head>
+<body>
+    <header>
+        <div>
+            <p class="tag">SGA</p>
+            <h1>Painel de testes da API</h1>
+            <p>Use os formulários abaixo para chamar as rotas da API.</p>
+        </div>
+        <button id="verificar-api" type="button">Verificar API</button>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>Salas</h2>
+            <form id="form-sala">
+                <label>ID <input name="id" required placeholder="SALA-01"></label>
+                <label>Nome <input name="nome" required placeholder="Laboratório 1"></label>
+                <label>Capacidade <input name="capacidade" type="number" min="1" required value="30"></label>
+                <fieldset>
+                    <legend>Recursos</legend>
+                    <label><input type="checkbox" name="recursos" value="projetor"> Projetor</label>
+                    <label><input type="checkbox" name="recursos" value="computadores"> Computadores</label>
+                    <label><input type="checkbox" name="recursos" value="sistema_audio"> Sistema de áudio</label>
+                    <label><input type="checkbox" name="recursos" value="ar_condicionado"> Ar-condicionado</label>
+                </fieldset>
+                <button type="submit">Cadastrar sala</button>
+            </form>
+            <button id="listar-salas" class="secondary" type="button">Listar salas</button>
+        </section>
+
+        <section class="card">
+            <h2>Agenda da sala</h2>
+            <form id="form-agenda-sala">
+                <label>ID da sala <input name="sala_id" required placeholder="SALA-01"></label>
+                <label>Dia
+                    <select name="dia_semana" required>
+                        <option value="segunda">Segunda</option>
+                        <option value="terca">Terça</option>
+                        <option value="quarta">Quarta</option>
+                        <option value="quinta">Quinta</option>
+                        <option value="sexta">Sexta</option>
+                        <option value="sabado">Sábado</option>
+                        <option value="domingo">Domingo</option>
+                    </select>
+                </label>
+                <label>Início <input name="horario_inicio" type="time" required value="08:00"></label>
+                <label>Fim <input name="horario_fim" type="time" required value="10:00"></label>
+                <button type="submit">Consultar disponibilidade</button>
+                <button id="listar-agenda" class="secondary" type="button">Listar alocações</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>Alunos</h2>
+            <form id="form-aluno">
+                <label>ID / matrícula <input name="id" required placeholder="2026001"></label>
+                <label>Nome completo <input name="nome" required placeholder="Ana Silva"></label>
+                <label>E-mail <input name="email" type="email" required placeholder="ana@instituicao.edu.br"></label>
+                <button type="submit">Cadastrar aluno</button>
+            </form>
+            <div class="inline-actions">
+                <button id="listar-alunos" class="secondary" type="button">Listar alunos</button>
+                <form id="form-buscar-aluno" class="inline-form">
+                    <input name="id" required aria-label="ID do aluno" placeholder="ID do aluno">
+                    <button type="submit">Buscar aluno</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Turmas</h2>
+            <form id="form-turma">
+                <label>ID <input name="id" required placeholder="TURMA-01"></label>
+                <label>Nome <input name="nome" required placeholder="Turma A"></label>
+                <label>Disciplina <input name="disciplina" required placeholder="Programação"></label>
+                <label>Professor <input name="professor" required placeholder="Prof. Carlos"></label>
+                <button type="submit">Cadastrar turma</button>
+            </form>
+            <button id="listar-turmas" class="secondary" type="button">Listar turmas</button>
+        </section>
+
+        <section class="card">
+            <h2>Matrículas</h2>
+            <form id="form-matricula">
+                <label>ID da turma <input name="turma_id" required placeholder="TURMA-01"></label>
+                <label>ID do aluno <input name="aluno_id" required placeholder="2026001"></label>
+                <button type="submit">Matricular aluno</button>
+                <button id="listar-matriculados" class="secondary" type="button">Listar matriculados</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>Alocação de turma</h2>
+            <form id="form-alocacao">
+                <label>ID da turma <input name="turma_id" required placeholder="TURMA-01"></label>
+                <label>ID da sala <input name="sala_id" required placeholder="SALA-01"></label>
+                <label>Dia
+                    <select name="dia_semana" required>
+                        <option value="segunda">Segunda</option>
+                        <option value="terca">Terça</option>
+                        <option value="quarta">Quarta</option>
+                        <option value="quinta">Quinta</option>
+                        <option value="sexta">Sexta</option>
+                        <option value="sabado">Sábado</option>
+                        <option value="domingo">Domingo</option>
+                    </select>
+                </label>
+                <label>Início <input name="horario_inicio" type="time" required value="08:00"></label>
+                <label>Fim <input name="horario_fim" type="time" required value="10:00"></label>
+                <button type="submit">Alocar turma</button>
+            </form>
+        </section>
+    </main>
+
+    <aside id="resultado" aria-live="polite">
+        <div class="result-header">
+            <div>
+                <p class="tag">RESPOSTA</p>
+                <h2 id="resultado-titulo">Nenhuma requisição realizada</h2>
+            </div>
+            <div class="result-actions">
+                <span id="resultado-status"></span>
+                <button id="fechar-resultado" class="close-result" type="button" aria-label="Fechar resposta" title="Fechar resposta">&times;</button>
+            </div>
+        </div>
+        <pre id="resultado-conteudo">Clique em uma ação para começar.</pre>
+    </aside>
+
+    <script src="/interface/app.js"></script>
+</body>
+</html>
