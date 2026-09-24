@@ -1,4 +1,4 @@
-package main
+package repositories
 
 import (
 	"sync"
@@ -11,11 +11,11 @@ type SalaRepository struct {
 	salas []models.Sala
 }
 
-func novoSalaRepository() *SalaRepository {
+func NovoSalaRepository() *SalaRepository {
 	return &SalaRepository{salas: make([]models.Sala, 0)}
 }
 
-func (r *SalaRepository) criar(novaSala models.Sala) bool {
+func (r *SalaRepository) Criar(novaSala models.Sala) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -33,7 +33,7 @@ func (r *SalaRepository) criar(novaSala models.Sala) bool {
 	return true
 }
 
-func (r *SalaRepository) listar() []models.Sala {
+func (r *SalaRepository) Listar() []models.Sala {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -42,7 +42,7 @@ func (r *SalaRepository) listar() []models.Sala {
 	return salas
 }
 
-func (r *SalaRepository) buscarPorID(id string) (models.Sala, bool) {
+func (r *SalaRepository) BuscarPorID(id string) (models.Sala, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

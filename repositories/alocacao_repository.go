@@ -1,9 +1,8 @@
-package main
+package repositories
 
 import (
 	"errors"
 	"sync"
-	"time"
 
 	"api-gin/models"
 )
@@ -18,11 +17,11 @@ type AlocacaoRepository struct {
 	alocacoes []models.Alocacao
 }
 
-func novoAlocacaoRepository() *AlocacaoRepository {
+func NovoAlocacaoRepository() *AlocacaoRepository {
 	return &AlocacaoRepository{alocacoes: make([]models.Alocacao, 0)}
 }
 
-func (r *AlocacaoRepository) criar(novaAlocacao models.Alocacao) error {
+func (r *AlocacaoRepository) Criar(novaAlocacao models.Alocacao) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -32,7 +31,7 @@ func (r *AlocacaoRepository) criar(novaAlocacao models.Alocacao) error {
 		}
 
 		mesmaSalaEDia := alocacao.SalaID == novaAlocacao.SalaID && alocacao.DiaSemana == novaAlocacao.DiaSemana
-		horariosSobrepostos := existeSobreposicao(
+		horariosSobrepostos := models.HorariosSobrepostos(
 			novaAlocacao.InicioMinutos,
 			novaAlocacao.FimMinutos,
 			alocacao.InicioMinutos,
@@ -47,7 +46,7 @@ func (r *AlocacaoRepository) criar(novaAlocacao models.Alocacao) error {
 	return nil
 }
 
-func (r *AlocacaoRepository) listarPorSala(salaID string) []models.Alocacao {
+func (r *AlocacaoRepository) ListarPorSala(salaID string) []models.Alocacao {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -61,7 +60,7 @@ func (r *AlocacaoRepository) listarPorSala(salaID string) []models.Alocacao {
 	return alocacoes
 }
 
-func (r *AlocacaoRepository) buscarPorTurma(turmaID string) (models.Alocacao, bool) {
+func (r *AlocacaoRepository) BuscarPorTurma(turmaID string) (models.Alocacao, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -74,31 +73,18 @@ func (r *AlocacaoRepository) buscarPorTurma(turmaID string) (models.Alocacao, bo
 	return models.Alocacao{}, false
 }
 
-func (r *AlocacaoRepository) buscarConflitos(salaID string, diaSemana models.DiaSemana, inicioMinutos, fimMinutos int) []models.Alocacao {
+func (r *AlocacaoRepository) BuscarConflitos(salaID string, diaSemana models.DiaSemana, inicioMinutos, fimMinutos int) []models.Alocacao {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	conflitos := make([]models.Alocacao, 0)
 	for _, alocacao := range r.alocacoes {
 		mesmaSalaEDia := alocacao.SalaID == salaID && alocacao.DiaSemana == diaSemana
-		horariosSobrepostos := existeSobreposicao(inicioMinutos, fimMinutos, alocacao.InicioMinutos, alocacao.FimMinutos)
+		horariosSobrepostos := models.HorariosSobrepostos(inicioMinutos, fimMinutos, alocacao.InicioMinutos, alocacao.FimMinutos)
 		if mesmaSalaEDia && horariosSobrepostos {
 			conflitos = append(conflitos, alocacao)
 		}
 	}
 
 	return conflitos
-}
-
-func existeSobreposicao(inicioA, fimA, inicioB, fimB int) bool {
-	return inicioA < fimB && fimA > inicioB
-}
-
-func horarioEmMinutos(horario string) (int, error) {
-	valor, err := time.Parse("15:04", horario)
-	if err != nil {
-		return 0, err
-	}
-
-	return valor.Hour()*60 + valor.Minute(), nil
 }

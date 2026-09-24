@@ -1,4 +1,4 @@
-package main
+package repositories
 
 import (
 	"errors"
@@ -17,11 +17,11 @@ type TurmaRepository struct {
 	turmas []models.Turma
 }
 
-func novoTurmaRepository() *TurmaRepository {
+func NovoTurmaRepository() *TurmaRepository {
 	return &TurmaRepository{turmas: make([]models.Turma, 0)}
 }
 
-func (r *TurmaRepository) criar(novaTurma models.Turma) bool {
+func (r *TurmaRepository) Criar(novaTurma models.Turma) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -36,7 +36,7 @@ func (r *TurmaRepository) criar(novaTurma models.Turma) bool {
 	return true
 }
 
-func (r *TurmaRepository) listar() []models.Turma {
+func (r *TurmaRepository) Listar() []models.Turma {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -45,7 +45,7 @@ func (r *TurmaRepository) listar() []models.Turma {
 	return turmas
 }
 
-func (r *TurmaRepository) buscarPorID(id string) (models.Turma, bool) {
+func (r *TurmaRepository) BuscarPorID(id string) (models.Turma, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -58,7 +58,7 @@ func (r *TurmaRepository) buscarPorID(id string) (models.Turma, bool) {
 	return models.Turma{}, false
 }
 
-func (r *TurmaRepository) marcarComoAlocada(id string) error {
+func (r *TurmaRepository) MarcarComoAlocada(id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -72,7 +72,7 @@ func (r *TurmaRepository) marcarComoAlocada(id string) error {
 	return ErrTurmaNaoEncontrada
 }
 
-func (r *TurmaRepository) matricularAluno(turmaID, alunoID string) error {
+func (r *TurmaRepository) MatricularAluno(turmaID, alunoID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -95,7 +95,7 @@ func (r *TurmaRepository) matricularAluno(turmaID, alunoID string) error {
 	return ErrTurmaNaoEncontrada
 }
 
-func (r *TurmaRepository) listarAlunosIDs(turmaID string) ([]string, error) {
+func (r *TurmaRepository) ListarAlunosIDs(turmaID string) ([]string, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -110,7 +110,7 @@ func (r *TurmaRepository) listarAlunosIDs(turmaID string) ([]string, error) {
 	return nil, ErrTurmaNaoEncontrada
 }
 
-func (r *TurmaRepository) listarPorAluno(alunoID string) []models.Turma {
+func (r *TurmaRepository) ListarPorAluno(alunoID string) []models.Turma {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

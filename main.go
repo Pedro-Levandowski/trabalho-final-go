@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"api-gin/models"
+	"api-gin/repositories"
 )
 
 const versaoAPI = "1.8.0"
@@ -35,10 +36,10 @@ func configurarRotas() *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
-	salaRepository := novoSalaRepository()
-	alunoRepository := novoAlunoRepository()
-	turmaRepository := novoTurmaRepository()
-	alocacaoRepository := novoAlocacaoRepository()
+	salaRepository := repositories.NovoSalaRepository()
+	alunoRepository := repositories.NovoAlunoRepository()
+	turmaRepository := repositories.NovoTurmaRepository()
+	alocacaoRepository := repositories.NovoAlocacaoRepository()
 
 	v1 := r.Group("/api/v1")
 	{
@@ -69,7 +70,7 @@ func configurarRotas() *gin.Engine {
 			}
 			novaSala.Ativa = true
 
-			if cadastrada := salaRepository.criar(novaSala); !cadastrada {
+			if cadastrada := salaRepository.Criar(novaSala); !cadastrada {
 				c.JSON(http.StatusConflict, gin.H{
 					"erro": "já existe uma sala com o identificador informado",
 				})
@@ -84,11 +85,11 @@ func configurarRotas() *gin.Engine {
 		})
 
 		v1.GET("/salas", func(c *gin.Context) {
-			c.JSON(http.StatusOK, salaRepository.listar())
+			c.JSON(http.StatusOK, salaRepository.Listar())
 		})
 
 		v1.GET("/salas/:id/alocacoes", func(c *gin.Context) {
-			sala, encontrada := salaRepository.buscarPorID(c.Param("id"))
+			sala, encontrada := salaRepository.BuscarPorID(c.Param("id"))
 			if !encontrada {
 				c.JSON(http.StatusNotFound, gin.H{"erro": "sala não encontrada"})
 				return
@@ -101,7 +102,7 @@ func configurarRotas() *gin.Engine {
 			if !temDia && !temInicio && !temFim {
 				c.JSON(http.StatusOK, gin.H{
 					"sala_id":   sala.ID,
-					"alocacoes": alocacaoRepository.listarPorSala(sala.ID),
+					"alocacoes": alocacaoRepository.ListarPorSala(sala.ID),
 				})
 				return
 			}
@@ -125,7 +126,7 @@ func configurarRotas() *gin.Engine {
 				return
 			}
 
-			conflitos := alocacaoRepository.buscarConflitos(sala.ID, diaSemana, inicioMinutos, fimMinutos)
+			conflitos := alocacaoRepository.BuscarConflitos(sala.ID, diaSemana, inicioMinutos, fimMinutos)
 			c.JSON(http.StatusOK, gin.H{
 				"sala_id":        sala.ID,
 				"dia_semana":     diaSemana,
@@ -155,7 +156,7 @@ func configurarRotas() *gin.Engine {
 				return
 			}
 
-			if cadastrado := alunoRepository.criar(novoAluno); !cadastrado {
+			if cadastrado := alunoRepository.Criar(novoAluno); !cadastrado {
 				c.JSON(http.StatusConflict, gin.H{
 					"erro": "já existe um aluno com o identificador informado",
 				})
@@ -166,11 +167,11 @@ func configurarRotas() *gin.Engine {
 		})
 
 		v1.GET("/alunos", func(c *gin.Context) {
-			c.JSON(http.StatusOK, alunoRepository.listar())
+			c.JSON(http.StatusOK, alunoRepository.Listar())
 		})
 
 		v1.GET("/alunos/:id", func(c *gin.Context) {
-			aluno, encontrado := alunoRepository.buscarPorID(c.Param("id"))
+			aluno, encontrado := alunoRepository.BuscarPorID(c.Param("id"))
 			if !encontrado {
 				c.JSON(http.StatusNotFound, gin.H{
 					"erro": "aluno não encontrado",
@@ -209,7 +210,7 @@ func configurarRotas() *gin.Engine {
 				Ativa:      true,
 			}
 
-			if cadastrada := turmaRepository.criar(novaTurma); !cadastrada {
+			if cadastrada := turmaRepository.Criar(novaTurma); !cadastrada {
 				c.JSON(http.StatusConflict, gin.H{
 					"erro": "já existe uma turma com o identificador informado",
 				})
@@ -220,7 +221,7 @@ func configurarRotas() *gin.Engine {
 		})
 
 		v1.GET("/turmas", func(c *gin.Context) {
-			c.JSON(http.StatusOK, turmaRepository.listar())
+			c.JSON(http.StatusOK, turmaRepository.Listar())
 		})
 
 		v1.POST("/turmas/:id/alocar", func(c *gin.Context) {
@@ -245,13 +246,13 @@ func configurarRotas() *gin.Engine {
 				return
 			}
 
-			turma, encontrada := turmaRepository.buscarPorID(c.Param("id"))
+			turma, encontrada := turmaRepository.BuscarPorID(c.Param("id"))
 			if !encontrada {
 				c.JSON(http.StatusNotFound, gin.H{"erro": "turma não encontrada"})
 				return
 			}
 
-			sala, encontrada := salaRepository.buscarPorID(request.SalaID)
+			sala, encontrada := salaRepository.BuscarPorID(request.SalaID)
 			if !encontrada {
 				c.JSON(http.StatusNotFound, gin.H{"erro": "sala não encontrada"})
 				return
@@ -286,9 +287,9 @@ func configurarRotas() *gin.Engine {
 				}
 			}
 
-			if err := alocacaoRepository.criar(alocacao); err != nil {
+			if err := alocacaoRepository.Criar(alocacao); err != nil {
 				switch {
-				case errors.Is(err, ErrTurmaJaAlocada), errors.Is(err, ErrConflitoHorarioSala):
+				case errors.Is(err, repositories.ErrTurmaJaAlocada), errors.Is(err, repositories.ErrConflitoHorarioSala):
 					c.JSON(http.StatusConflict, gin.H{"erro": err.Error()})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"erro": "não foi possível alocar a sala"})
@@ -296,7 +297,7 @@ func configurarRotas() *gin.Engine {
 				return
 			}
 
-			if err := turmaRepository.marcarComoAlocada(turma.ID); err != nil {
+			if err := turmaRepository.MarcarComoAlocada(turma.ID); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"erro": "não foi possível atualizar a turma"})
 				return
 			}
@@ -321,7 +322,7 @@ func configurarRotas() *gin.Engine {
 				return
 			}
 
-			aluno, encontrado := alunoRepository.buscarPorID(request.AlunoID)
+			aluno, encontrado := alunoRepository.BuscarPorID(request.AlunoID)
 			if !encontrado {
 				c.JSON(http.StatusNotFound, gin.H{
 					"erro": "aluno não encontrado",
@@ -329,7 +330,7 @@ func configurarRotas() *gin.Engine {
 				return
 			}
 
-			turma, encontrada := turmaRepository.buscarPorID(c.Param("id"))
+			turma, encontrada := turmaRepository.BuscarPorID(c.Param("id"))
 			if !encontrada {
 				c.JSON(http.StatusNotFound, gin.H{"erro": "turma não encontrada"})
 				return
@@ -337,13 +338,13 @@ func configurarRotas() *gin.Engine {
 
 			for _, alunoID := range turma.AlunosIDs {
 				if alunoID == request.AlunoID {
-					c.JSON(http.StatusConflict, gin.H{"erro": ErrAlunoJaMatriculado.Error()})
+					c.JSON(http.StatusConflict, gin.H{"erro": repositories.ErrAlunoJaMatriculado.Error()})
 					return
 				}
 			}
 
-			if alocacao, alocada := alocacaoRepository.buscarPorTurma(turma.ID); alocada {
-				sala, encontrada := salaRepository.buscarPorID(alocacao.SalaID)
+			if alocacao, alocada := alocacaoRepository.BuscarPorTurma(turma.ID); alocada {
+				sala, encontrada := salaRepository.BuscarPorID(alocacao.SalaID)
 				if !encontrada {
 					c.JSON(http.StatusInternalServerError, gin.H{"erro": "sala da alocação não encontrada"})
 					return
@@ -362,11 +363,11 @@ func configurarRotas() *gin.Engine {
 				}
 			}
 
-			if err := turmaRepository.matricularAluno(c.Param("id"), request.AlunoID); err != nil {
+			if err := turmaRepository.MatricularAluno(c.Param("id"), request.AlunoID); err != nil {
 				switch {
-				case errors.Is(err, ErrTurmaNaoEncontrada):
+				case errors.Is(err, repositories.ErrTurmaNaoEncontrada):
 					c.JSON(http.StatusNotFound, gin.H{"erro": err.Error()})
-				case errors.Is(err, ErrAlunoJaMatriculado):
+				case errors.Is(err, repositories.ErrAlunoJaMatriculado):
 					c.JSON(http.StatusConflict, gin.H{"erro": err.Error()})
 				default:
 					c.JSON(http.StatusInternalServerError, gin.H{"erro": "não foi possível matricular o aluno"})
@@ -378,15 +379,15 @@ func configurarRotas() *gin.Engine {
 		})
 
 		v1.GET("/turmas/:id/alunos", func(c *gin.Context) {
-			alunosIDs, err := turmaRepository.listarAlunosIDs(c.Param("id"))
-			if errors.Is(err, ErrTurmaNaoEncontrada) {
+			alunosIDs, err := turmaRepository.ListarAlunosIDs(c.Param("id"))
+			if errors.Is(err, repositories.ErrTurmaNaoEncontrada) {
 				c.JSON(http.StatusNotFound, gin.H{"erro": err.Error()})
 				return
 			}
 
 			alunos := make([]models.Aluno, 0, len(alunosIDs))
 			for _, alunoID := range alunosIDs {
-				if aluno, encontrado := alunoRepository.buscarPorID(alunoID); encontrado {
+				if aluno, encontrado := alunoRepository.BuscarPorID(alunoID); encontrado {
 					alunos = append(alunos, aluno)
 				}
 			}
