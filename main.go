@@ -12,7 +12,7 @@ import (
 	"api-gin/repositories"
 )
 
-const versaoAPI = "1.8.0"
+const versaoAPI = "1.9.0"
 
 type criarTurmaRequest struct {
 	ID         string `json:"id" binding:"required"`
@@ -35,6 +35,10 @@ type alocarSalaRequest struct {
 func configurarRotas() *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Static("/interface", "./web")
+	r.GET("/teste", func(c *gin.Context) {
+		c.File("./web/index.html")
+	})
 
 	salaRepository := repositories.NovoSalaRepository()
 	alunoRepository := repositories.NovoAlunoRepository()
