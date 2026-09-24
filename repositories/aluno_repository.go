@@ -1,4 +1,4 @@
-package main
+package repositories
 
 import (
 	"sync"
@@ -11,11 +11,11 @@ type AlunoRepository struct {
 	alunos []models.Aluno
 }
 
-func novoAlunoRepository() *AlunoRepository {
+func NovoAlunoRepository() *AlunoRepository {
 	return &AlunoRepository{alunos: make([]models.Aluno, 0)}
 }
 
-func (r *AlunoRepository) criar(novoAluno models.Aluno) bool {
+func (r *AlunoRepository) Criar(novoAluno models.Aluno) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -29,7 +29,7 @@ func (r *AlunoRepository) criar(novoAluno models.Aluno) bool {
 	return true
 }
 
-func (r *AlunoRepository) listar() []models.Aluno {
+func (r *AlunoRepository) Listar() []models.Aluno {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -38,7 +38,7 @@ func (r *AlunoRepository) listar() []models.Aluno {
 	return alunos
 }
 
-func (r *AlunoRepository) buscarPorID(id string) (models.Aluno, bool) {
+func (r *AlunoRepository) BuscarPorID(id string) (models.Aluno, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

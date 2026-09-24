@@ -21,6 +21,10 @@ func (d DiaSemana) Valido() bool {
 	}
 }
 
+func HorariosSobrepostos(inicioA, fimA, inicioB, fimB int) bool {
+	return inicioA < fimB && fimA > inicioB
+}
+
 type Alocacao struct {
 	TurmaID       string    `json:"turma_id"`
 	SalaID        string    `json:"sala_id"`
