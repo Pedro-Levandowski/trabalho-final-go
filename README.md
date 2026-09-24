@@ -78,3 +78,7 @@ As funcionalidades da solução são expostas por meio de serviços padronizados
   - Se a capacidade da sala for menor que a quantidade atual de alunos matriculados na turma: Erro de capacidade insuficiente (422).
   - Se houver sobreposição de horário no mesmo dia e sala: Erro de conflito de agenda () (409).
   - Se todas as regras forem atendidas: Sucesso na alocação da turma.
+
+  ## 3. Resultado
+
+  Para verificar o resultado, consulte o arquvio [INSTRUÇÕES.md](INSTRUÇÕES.md)
