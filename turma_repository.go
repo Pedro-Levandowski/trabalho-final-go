@@ -109,3 +109,20 @@ func (r *TurmaRepository) listarAlunosIDs(turmaID string) ([]string, error) {
 
 	return nil, ErrTurmaNaoEncontrada
 }
+
+func (r *TurmaRepository) listarPorAluno(alunoID string) []models.Turma {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	turmas := make([]models.Turma, 0)
+	for _, turma := range r.turmas {
+		for _, matriculadoID := range turma.AlunosIDs {
+			if matriculadoID == alunoID {
+				turmas = append(turmas, turma)
+				break
+			}
+		}
+	}
+
+	return turmas
+}

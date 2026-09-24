@@ -11,7 +11,7 @@ import (
 	"api-gin/models"
 )
 
-const versaoAPI = "1.7.0"
+const versaoAPI = "1.8.0"
 
 type criarTurmaRequest struct {
 	ID         string `json:"id" binding:"required"`
@@ -279,6 +279,13 @@ func configurarRotas() *gin.Engine {
 				FimMinutos:    fimMinutos,
 			}
 
+			for _, alunoID := range turma.AlunosIDs {
+				if alunoPossuiConflitoAgenda(alunoID, turma.ID, alocacao, turmaRepository, alocacaoRepository) {
+					c.JSON(http.StatusConflict, gin.H{"erro": ErrConflitoAgendaAluno.Error()})
+					return
+				}
+			}
+
 			if err := alocacaoRepository.criar(alocacao); err != nil {
 				switch {
 				case errors.Is(err, ErrTurmaJaAlocada), errors.Is(err, ErrConflitoHorarioSala):
@@ -346,6 +353,11 @@ func configurarRotas() *gin.Engine {
 					c.JSON(http.StatusUnprocessableEntity, gin.H{
 						"erro": "a matrícula excederia a capacidade da sala alocada",
 					})
+					return
+				}
+
+				if alunoPossuiConflitoAgenda(request.AlunoID, turma.ID, alocacao, turmaRepository, alocacaoRepository) {
+					c.JSON(http.StatusConflict, gin.H{"erro": ErrConflitoAgendaAluno.Error()})
 					return
 				}
 			}

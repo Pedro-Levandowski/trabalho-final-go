@@ -32,7 +32,12 @@ func (r *AlocacaoRepository) criar(novaAlocacao models.Alocacao) error {
 		}
 
 		mesmaSalaEDia := alocacao.SalaID == novaAlocacao.SalaID && alocacao.DiaSemana == novaAlocacao.DiaSemana
-		horariosSobrepostos := novaAlocacao.InicioMinutos < alocacao.FimMinutos && novaAlocacao.FimMinutos > alocacao.InicioMinutos
+		horariosSobrepostos := existeSobreposicao(
+			novaAlocacao.InicioMinutos,
+			novaAlocacao.FimMinutos,
+			alocacao.InicioMinutos,
+			alocacao.FimMinutos,
+		)
 		if mesmaSalaEDia && horariosSobrepostos {
 			return ErrConflitoHorarioSala
 		}
@@ -76,13 +81,17 @@ func (r *AlocacaoRepository) buscarConflitos(salaID string, diaSemana models.Dia
 	conflitos := make([]models.Alocacao, 0)
 	for _, alocacao := range r.alocacoes {
 		mesmaSalaEDia := alocacao.SalaID == salaID && alocacao.DiaSemana == diaSemana
-		horariosSobrepostos := inicioMinutos < alocacao.FimMinutos && fimMinutos > alocacao.InicioMinutos
+		horariosSobrepostos := existeSobreposicao(inicioMinutos, fimMinutos, alocacao.InicioMinutos, alocacao.FimMinutos)
 		if mesmaSalaEDia && horariosSobrepostos {
 			conflitos = append(conflitos, alocacao)
 		}
 	}
 
 	return conflitos
+}
+
+func existeSobreposicao(inicioA, fimA, inicioB, fimB int) bool {
+	return inicioA < fimB && fimA > inicioB
 }
 
 func horarioEmMinutos(horario string) (int, error) {
